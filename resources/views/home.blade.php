@@ -8,11 +8,16 @@
 
     @vite('resources/css/app.css')
     <script src="https://kit.fontawesome.com/283b0fc457.js" crossorigin="anonymous"></script>
+    <script>
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
+    </script>
 
     <title>Document</title>
 </head>
 
-<body">
+<body>
     <section id="sidenav" class="sidenav">
         <div class="p-5 flex flex-col">
             <div class="flex flex-row justify-end">
@@ -21,21 +26,31 @@
             <div class="flex flex-col p-5">
                 <h1 class="text-lg font-semibold">Recent URLs</h1>
                 <hr class="my-5">
-                <ul class="flex flex-col gap-5">
-                    @for ($i = 0; $i < 10; $i++) <li class="p-5 bg-green-300 border-2 rounded-lg">
-                        <div class="flex flex-row justify-between">
+                <ul class="flex flex-col gap-5 justify-center">
+                    @if(isset($urls))
+                    @foreach ($urls as $recentUrl)
+                    <li>
+                        <div class="flex flex-row justify-between border-2 rounded-lg p-3 bg-green-300">
                             <div>
-                                <h5 class="text-lg font-semibold">shortener.seior.tech/google</h5>
-                                <p class="text-sm font-light">www.google.com</p>
-                            </div>
-                            <div>
-                                <button class="text-xl" id="recent-copy-button">📋</button>
-                                <button class="mr-2 text-xl" id="recent-copy-button">✖️</button>
+                                <h5 class="text-lg font-semibold text-ellipsis overflow-hidden">
+                                    {{ $recentUrl->alias }}
+                                </h5>
+                                <p class="text-sm font-light">{{ $recentUrl->destination }}</p>
                             </div>
                         </div>
-                        </li>
-                        @endfor
+                    </li>
+                    @endforeach
+                    @endif
                 </ul>
+                @if (isset($urls))
+                @if (!(sizeof($urls) < 1))
+                <a href="/url/clear" class="justify-center flex flex-row mt-5">
+                    <h5 class="text-lg font-semibold text-ellipsis overflow-hidden">
+                        Clear Recent URLs
+                    </h5>
+                </a>
+                @endif
+                @endif
             </div>
         </div>
     </section>
@@ -43,13 +58,31 @@
     <div class="flex justify-between flex-col h-[100vh] bg-violet-300 w-full">
         <section id="navbar" class="container mx-auto px-4 my-4">
             <div class="flex flex-row content-center place-items-center justify-between">
-                <p class="text-3xl font-bold">Seior Shortener.</p>
+                <a href="/">
+                    <p class="text-3xl font-bold cursor-pointer">Seior Shortener.</p>
+                </a>
                 <div class="flex gap-5">
-                    <p class="font-semibold font-lg">Github</p>
-                    <p class="font-semibold font-lg">About</p>
-                    <p onclick="openNav()" class="font-semibold font-lg">Recent URLs</p>
+                    <a href="https://github.com/radenrishwan/shortener-web">
+                        <p class="font-semibold cursor-pointer font-lg">Github</p>
+                    </a>
+                    <p onclick="openNav()" class="font-semibold cursor-pointer font-lg">Recent URLs</p>
                 </div>
             </div>
+            @if (isset($error))
+            <div class="w-full h-[2rem] bg-red-300 rounded-lg flex justify-between p-5 border-2 mt-2 items-center"
+                id="error-alert">
+                <h1 class="text-md font-semibold">{{ ucfirst($error) }}</h1>
+                <button class="mr-2 text-md" id="error-button">✖️</button>
+            </div>
+            @endif
+            @if (isset($success))
+            <div class="w-full h-[2rem] bg-green-300 rounded-lg flex justify-between p-5 border-2 mt-2 items-center"
+                id="error-alert">
+                <h1 class="text-md font-semibold">{{ ucfirst($success) }}</h1>
+                <button class="mr-2 text-md" id="error-button">✖️</button>
+            </div>
+            @endif
+
         </section>
 
         <section id="content" class="container mx-auto px-4 my-4">
@@ -58,20 +91,21 @@
                     <div class="flex flex-row">
                         <div class="w-[450px] p-10 bg-green-300 rounded-lg border-2">
                             <p class="text-xl font-bold">Create new link</p>
-                            <form method="POST">
-                                <input type="text" name="destination" id="destination" maxlength="255"
+                            <form method="post" action="/">
+                                @csrf
+                                <input type="text" name="destination" id="destination" maxlength="255" minlength="1"
                                     class="border-none outline-none mt-5 rounded-lg h-10 w-full p-5"
                                     placeholder="Enter destination link">
                                 <div id="destination-input-alert" class="px-4 py-2"></div>
 
-                                <input type="text" name="alias" id="alias" maxlength="31"
+                                <input type="text" name="alias" id="alias" maxlength="30" minlength="1"
                                     class="border-none outline-none mt-5 rounded-lg h-10 w-full p-5"
                                     placeholder="Enter Alias">
 
                                 <div class="flex flex-row justify-between mt-5 place-items-start content-center">
                                     <div id="alias-input-alert" class="px-4 py-2"></div>
-                                    <button type="submit" id="create-button" disabled
-                                        class="rounded-lg bg-violet-300 px-4 py-2">Create</button>
+                                    <button type="submit" id="create-button"
+                                        class="rounded-lg bg-violet-300 px-4 py-2 pointer-events-none">Create</button>
                                 </div>
                             </form>
                         </div>
@@ -82,10 +116,16 @@
                             <p class="text-xl font-bold">Result Here</p>
                             <div id="result"
                                 class="mt-5 flex flex-row justify-between place-items-start content-center">
-                                <input type="text" name="outptu" id="output" maxlength="31"
+                                @if (isset($url))
+                                <input type="text" name="output" id="output" maxlength="31"
                                     class="border-none outline-none rounded-lg h-10 w-full p-5" placeholder="" disabled
-                                    value="https://shortener.seior.tech/google">
-                                <button class="px-3 text-2xl">📋</button>
+                                    value="{{ $url['alias'] }}">
+                                @else
+                                <input type="text" name="output" id="output" maxlength="31"
+                                    class="border-none outline-none rounded-lg h-10 w-full p-5" placeholder="" disabled
+                                    value="empty">
+                                @endif
+                                <button class="px-3 text-2xl" id="copy-url">📋</button>
                             </div>
                         </div>
                     </div>
@@ -207,103 +247,7 @@
         </section>
     </div>
 
-    <script>
-        const destination = document.getElementById('destination')
-        const alias = document.getElementById('alias')
-
-        const aliasInputAlert = document.getElementById('alias-input-alert')
-        const destinationInputAlert = document.getElementById('destination-input-alert')
-
-
-        const createButton = document.getElementById('create-button')
-        const copyText = document.getElementById("output")
-
-        const sideNav = document.getElementById("sidenav")
-
-        copyText.onclick = () => {
-            console.log("test")
-        }
-
-        destination.onkeyup = () => {
-            checkIfUrl(destination.value)
-        }
-
-        destination.onkeydown = () => {
-            checkIfUrl(destination.value)
-        }
-
-        alias.onkeyup = () => {
-            checkAliasLength(alias.value.length)
-        }
-
-        alias.onkeydown = () => {
-            checkAliasLength(alias.value.length)
-        }
-
-        function checkIfUrl(url) {
-            const expression = /(https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|www\.[a-zA-Z0-9][a-zA-Z0-9-]+[a-zA-Z0-9]\.[^\s]{2,}|https?:\/\/(?:www\.|(?!www))[a-zA-Z0-9]+\.[^\s]{2,}|www\.[a-zA-Z0-9]+\.[^\s]{2,})/gi;
-            const regex = new RegExp(expression);
-
-            if (url.match(regex)) {
-                const alertText = document.getElementById('destination-alert')
-                alertText.remove()
-
-                if (createButton.classList.contains('pointer-events-none')) {
-                    createButton.classList.remove('pointer-events-none')
-                }
-            } else {
-                if (destinationInputAlert.children.length < 1) {
-                    const alertText = document.createElement('p')
-                    alertText.textContent = '⚠️ Destination must be valid url'
-                    alertText.id = 'destination-alert'
-                    alertText.classList = "text-red-600"
-
-                    destinationInputAlert.append(alertText)
-
-                    createButton.classList.add('pointer-events-none')
-                }
-            }
-        }
-
-        function checkAliasLength(lenght) {
-            if (aliasInputAlert.children.length < 1) {
-                if (lenght > 30) {
-                    const alertText = document.createElement('p')
-                    alertText.textContent = '⚠️ Alias link is too long'
-                    alertText.id = "alias-alert"
-                    alertText.classList = "text-red-600"
-
-                    aliasInputAlert.append(alertText)
-
-                    createButton.classList.add('pointer-events-none')
-                }
-            } else {
-                const alertText = document.getElementById('alias-alert')
-                alertText.remove()
-
-                if (createButton.classList.contains('pointer-events-none')) {
-                    createButton.classList.remove('pointer-events-none')
-                }
-            }
-        }
-
-        function copyToClipboard() {
-            console.log("running")
-
-            copyText.select()
-            copyText.setSelectionRange(0, 99999)
-
-            navigator.clipboard.writeText(copyText.value)
-        }
-
-        function openNav() {
-            sideNav.style.width = "500px"
-        }
-
-        function closeNav() {
-            sideNav.style.width = "0px"
-        }
-    </script>
-    </body>
+    <script src="{{ URL::asset('js/home.js') }}"></script>
+</body>
 
 </html>

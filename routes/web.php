@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\NotFoundController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,3 +16,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', [HomeController::class, 'index']);
+Route::post('/', [HomeController::class, 'createUrl']);
+Route::get('/notfound', [NotFoundController::class, 'index']);
+Route::get('/url/clear', [HomeController::class, 'clearUrl']);
+
+
+Route::get('/{alias}', [HomeController::class, 'redirect']);
+
